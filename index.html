@@ -255,7 +255,7 @@ function statusBadge(s) {
 }
 
 function payerCommande(montantTtc, reference) {
-  const stripe = Stripe(STRIPE_KEY);
+  const stripe = Stripe(mk_1S51gw4754LvneMGqP1y1DsO);
   stripe.redirectToCheckout({
     lineItems: [{ price_data: { currency: 'eur', product_data: { name: 'Commande ' + reference + ' — Design by Greg' }, unit_amount: Math.round(montantTtc * 100) }, quantity: 1 }],
     mode: 'payment',
