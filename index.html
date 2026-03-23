@@ -355,5 +355,17 @@ async function createCatalogue() {
   } else { showMsg('msg-catalogue', 'error', 'Erreur lors de l\'ajout.'); }
 }
 </script>
+<script src="https://js.stripe.com/v3/"></script>
+<script>
+function payerCommande(montant, reference) {
+  const stripe = Stripe('mk_1S51gw4754LvneMGqP1y1DsO');
+  stripe.redirectToCheckout({
+    lineItems: [{ price_data: { currency: 'eur', product_data: { name: 'Commande ' + reference }, unit_amount: Math.round(montant * 100) }, quantity: 1 }],
+    mode: 'payment',
+    successUrl: window.location.href + '?paiement=ok',
+    cancelUrl: window.location.href
+  });
+}
+</script>
 </body>
 </html>
