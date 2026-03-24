@@ -20,7 +20,7 @@ body { background: #f4f5f7; min-height: 100vh; }
 .config-card h3 { font-size: 12px; font-weight: 600; color: #6b7280; letter-spacing: 0.05em; margin-bottom: 12px; }
 .config-row { display: flex; gap: 8px; }
 .config-row input { flex: 1; padding: 9px 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; color: #111; }
-.btn { padding: 9px 18px; border-radius: 8px; border: 1px solid #e5e7eb; background: white; color: #111; cursor: pointer; font-size: 14px; font-weight: 500; }
+.btn { padding: 9px 18px; border-radius: 8px; border: 1px solid #e5e7eb; background: white; color: #111; cursor: pointer; font-size: 14px; font-weight: 500; text-decoration: none; display: inline-block; }
 .btn:hover { background: #f9fafb; }
 .btn-primary { background: #2563eb; border-color: #1d4ed8; color: white; }
 .btn-primary:hover { background: #1d4ed8; }
@@ -48,7 +48,7 @@ body { background: #f4f5f7; min-height: 100vh; }
 .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #f3f4f6; }
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
 th { text-align: left; padding: 10px 12px; color: #6b7280; font-weight: 500; font-size: 12px; border-bottom: 1px solid #f3f4f6; background: #f9fafb; }
-td { padding: 12px; border-bottom: 1px solid #f9fafb; color: #111; }
+td { padding: 12px; border-bottom: 1px solid #f9fafb; color: #111; vertical-align: middle; }
 tr:last-child td { border-bottom: none; }
 tr:hover td { background: #f9fafb; }
 .msg { padding: 10px 14px; border-radius: 8px; font-size: 13px; margin-bottom: 12px; }
@@ -191,10 +191,9 @@ tr:hover td { background: #f9fafb; }
 
 </div>
 
-<script src="https://js.stripe.com/v3/"></script>
 <script>
 let SB_URL = '', SB_KEY = '';
-const STRIPE_KEY = 'pk_live_REMPLACE_PAR_TA_CLE';
+const STRIPE_LINK = 'https://buy.stripe.com/28EbIU4I26WydhU9Nxew800';
 
 if (window.location.search.includes('paiement=ok')) {
   document.getElementById('success-banner').style.display = 'block';
@@ -255,13 +254,8 @@ function statusBadge(s) {
 }
 
 function payerCommande(montantTtc, reference) {
-  const stripe = Stripe(mk_1S51gw4754LvneMGqP1y1DsO);
-  stripe.redirectToCheckout({
-    lineItems: [{ price_data: { currency: 'eur', product_data: { name: 'Commande ' + reference + ' — Design by Greg' }, unit_amount: Math.round(montantTtc * 100) }, quantity: 1 }],
-    mode: 'payment',
-    successUrl: window.location.origin + window.location.pathname + '?paiement=ok',
-    cancelUrl: window.location.href
-  }).then(result => { if (result.error) alert(result.error.message); });
+  const url = STRIPE_LINK + '?prefilled_promo_code=&client_reference_id=' + encodeURIComponent(reference);
+  window.open(url, '_blank');
 }
 
 async function loadAll() {
@@ -305,7 +299,11 @@ async function loadCommandes() {
       '<td>' + (c.total_ht ? c.total_ht.toFixed(2) + ' €' : '—') + '</td>' +
       '<td>' + (c.total_ttc ? c.total_ttc.toFixed(2) + ' €' : '—') + '</td>' +
       '<td>' + (c.date_livraison || '—') + '</td>' +
-      '<td>' + (c.total_ttc > 0 && c.statut !== 'Payé' ? '<button class="btn btn-green btn-sm" onclick="payerCommande(' + c.total_ttc + ',\'' + c.reference + '\')">Payer ' + c.total_ttc.toFixed(2) + ' €</button>' : (c.statut === 'Payé' ? '<span class="badge badge-green">Payé</span>' : '—')) + '</td>' +
+      '<td>' + (c.statut === 'Payé'
+        ? '<span class="badge badge-green">Payé</span>'
+        : (c.total_ttc > 0
+          ? '<a class="btn btn-green btn-sm" href="' + STRIPE_LINK + '?client_reference_id=' + encodeURIComponent(c.reference || '') + '" target="_blank">Payer ' + c.total_ttc.toFixed(2) + ' €</a>'
+          : '—')) + '</td>' +
       '</tr>').join('') +
     '</tbody></table>';
   el.innerHTML = html;
