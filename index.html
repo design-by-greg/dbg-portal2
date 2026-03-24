@@ -193,7 +193,6 @@ tr:hover td { background: #f9fafb; }
 
 <script>
 let SB_URL = '', SB_KEY = '';
-const STRIPE_LINK = 'https://buy.stripe.com/28EbIU4I26WydhU9Nxew800';
 
 if (window.location.search.includes('paiement=ok')) {
   document.getElementById('success-banner').style.display = 'block';
@@ -253,9 +252,28 @@ function statusBadge(s) {
   return '<span class="badge badge-' + (map[s] || 'blue') + '">' + s + '</span>';
 }
 
-function payerCommande(montantTtc, reference) {
-  const url = STRIPE_LINK + '?prefilled_promo_code=&client_reference_id=' + encodeURIComponent(reference);
-  window.open(url, '_blank');
+async function payerCommande(montantTtc, reference, btnEl) {
+  btnEl.textContent = 'Chargement...';
+  btnEl.disabled = true;
+  try {
+    const r = await fetch('/api/create-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ montant: montantTtc, reference: reference })
+    });
+    const data = await r.json();
+    if (data.url) {
+      window.location.href = data.url;
+    } else {
+      alert('Erreur Stripe : ' + (data.error || 'inconnue'));
+      btnEl.textContent = 'Payer ' + montantTtc.toFixed(2) + ' €';
+      btnEl.disabled = false;
+    }
+  } catch(e) {
+    alert('Erreur de connexion : ' + e.message);
+    btnEl.textContent = 'Payer ' + montantTtc.toFixed(2) + ' €';
+    btnEl.disabled = false;
+  }
 }
 
 async function loadAll() {
@@ -291,21 +309,24 @@ async function loadCommandes() {
     if (el2) el2.innerHTML = '<div class="empty">Aucune commande</div>';
     return;
   }
-  const html = '<table><thead><tr><th>Référence</th><th>Client</th><th>Statut</th><th>Total HT</th><th>Total TTC</th><th>Livraison</th><th>Paiement</th></tr></thead><tbody>' +
-    data.map(c => '<tr>' +
+  const rows = data.map(c => {
+    const btnId = 'btn-' + (c.id || Math.random());
+    const payBtn = c.statut === 'Payé'
+      ? '<span class="badge badge-green">Payé</span>'
+      : (c.total_ttc > 0
+        ? '<button id="' + btnId + '" class="btn btn-green btn-sm" onclick="payerCommande(' + c.total_ttc + ', \'' + (c.reference || '') + '\', document.getElementById(\'' + btnId + '\'))">Payer ' + c.total_ttc.toFixed(2) + ' €</button>'
+        : '—');
+    return '<tr>' +
       '<td><strong>' + (c.reference || '—') + '</strong></td>' +
       '<td>' + (c.clients?.nom || '—') + '</td>' +
       '<td>' + statusBadge(c.statut) + '</td>' +
       '<td>' + (c.total_ht ? c.total_ht.toFixed(2) + ' €' : '—') + '</td>' +
       '<td>' + (c.total_ttc ? c.total_ttc.toFixed(2) + ' €' : '—') + '</td>' +
       '<td>' + (c.date_livraison || '—') + '</td>' +
-      '<td>' + (c.statut === 'Payé'
-        ? '<span class="badge badge-green">Payé</span>'
-        : (c.total_ttc > 0
-          ? '<a class="btn btn-green btn-sm" href="' + STRIPE_LINK + '?client_reference_id=' + encodeURIComponent(c.reference || '') + '" target="_blank">Payer ' + c.total_ttc.toFixed(2) + ' €</a>'
-          : '—')) + '</td>' +
-      '</tr>').join('') +
-    '</tbody></table>';
+      '<td>' + payBtn + '</td>' +
+      '</tr>';
+  }).join('');
+  const html = '<table><thead><tr><th>Référence</th><th>Client</th><th>Statut</th><th>Total HT</th><th>Total TTC</th><th>Livraison</th><th>Paiement</th></tr></thead><tbody>' + rows + '</tbody></table>';
   el.innerHTML = html;
   if (el2) el2.innerHTML = html;
 }
